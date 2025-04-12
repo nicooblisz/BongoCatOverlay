@@ -4,7 +4,7 @@ I vibecoded Bongo Cat for Mac because I need the emotional support quick and can
 #### ToDo
 - [ ] Tracking stats
 - [ ] Implementing random chance for special events
-- [ ] Currently it cycles 3 frames, I planned to animate but i will scrap that and display one idle frame
+- [ ] Currently it cycles 3 idle frames, I planned to animate but i will scrap that and display one idle frame
 - [ ] Dragging is crappy
 - [ ] Image manipulation would be nice (eg. rotating the cat)
 - [ ] Windows Implementation
