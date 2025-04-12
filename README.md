@@ -1,13 +1,15 @@
 # BongoCatOverlay
 I vibecoded Bongo Cat for Mac because I need the emotional support quick and can't invest time to learn objective C and Cocoa. 
 
-#### Usage: 
-  - Start with Terminal: ```$ path/to/BongoCat```
-  - Drag to a position you like.
-  - Click circular menubar icon.
-  - Toggle Click-Through.
-  - Smash your keyboard.
+# Credits
+Images from https://github.com/Externalizable/bongo.cat.git
 
+#### Usage
+  1. Start with Terminal: ```$ path/to/BongoCat```
+  2. Drag to a position you like.
+  3. Click circular menubar icon.
+  4. Toggle Click-Through.
+  5. Smash your keyboard.
 
 #### ToDo
 - [ ] Tracking stats
