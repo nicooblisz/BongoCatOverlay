@@ -2,14 +2,24 @@ import sys
 import os
 import time
 import keyboard
+import ctypes
 
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QLabel,
+    QSystemTrayIcon,
+    QMenu,
+    QAction
+)
 from PyQt5.QtCore import Qt, QTimer, QPoint, pyqtSignal
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
+
+import win32gui
+import win32con
 
 
 class TransparentWindow(QWidget):
-    # Thread-sicheres Signal für Tastendrücke
     keyPressed = pyqtSignal()
 
     def __init__(self):
@@ -38,19 +48,13 @@ class TransparentWindow(QWidget):
 
         self.idle_frames = []
         for i in range(3):
-            path = os.path.join(frames_dir, f"frame_{i:03}.png")
-            pix = QPixmap(path)
-            print(f"Loaded {path}: valid={not pix.isNull()}")
+            pix = QPixmap(os.path.join(frames_dir, f"frame_{i:03}.png"))
             if not pix.isNull():
                 self.idle_frames.append(pix)
 
         self.hit_left = QPixmap(os.path.join(frames_dir, "hit_left.png"))
         self.hit_right = QPixmap(os.path.join(frames_dir, "hit_right.png"))
         self.hit_both = QPixmap(os.path.join(frames_dir, "hit_both.png"))
-
-        print("hit_left valid:", not self.hit_left.isNull())
-        print("hit_right valid:", not self.hit_right.isNull())
-        print("hit_both valid:", not self.hit_both.isNull())
 
         # ---------------- Initial Frame ----------------
         self.frame_index = 0
@@ -67,12 +71,82 @@ class TransparentWindow(QWidget):
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(100)
 
-        # ---------------- Keyboard Handling ----------------
+        # ---------------- Keyboard ----------------
         self.keyPressed.connect(self.handle_key_qt)
         keyboard.on_press(self.on_key_background)
 
         # ---------------- Dragging ----------------
         self.drag_pos = QPoint()
+
+        # ---------------- Click-Through ----------------
+        self.click_through = False
+
+        # ---------------- Tray Icon ----------------
+        self.init_tray()
+
+    # --------------------------------------------------
+    # Tray Icon
+    # --------------------------------------------------
+    def init_tray(self):
+        self.tray = QSystemTrayIcon(self)
+
+        icon_path = os.path.join(os.path.dirname(sys.argv[0]), "frames", "frame_000.png")
+        self.tray.setIcon(QIcon(icon_path))
+        self.tray.setToolTip("BongoCat Overlay")
+
+        menu = QMenu()
+
+        self.click_action = QAction("Click-Through: OFF", self)
+        self.click_action.triggered.connect(self.toggle_click_through)
+        menu.addAction(self.click_action)
+
+        self.visibility_action = QAction("Hide Window", self)
+        self.visibility_action.triggered.connect(self.toggle_visibility)
+        menu.addAction(self.visibility_action)
+
+        menu.addSeparator()
+
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(self.quit_app)
+        menu.addAction(quit_action)
+
+        self.tray.setContextMenu(menu)
+        self.tray.show()
+
+    # --------------------------------------------------
+    # Click-Through (Win32)
+    # --------------------------------------------------
+    def toggle_click_through(self):
+        hwnd = int(self.winId())
+        style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+
+        if not self.click_through:
+            win32gui.SetWindowLong(
+                hwnd,
+                win32con.GWL_EXSTYLE,
+                style | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
+            )
+            self.click_through = True
+            self.click_action.setText("Click-Through: ON")
+        else:
+            win32gui.SetWindowLong(
+                hwnd,
+                win32con.GWL_EXSTYLE,
+                style & ~win32con.WS_EX_TRANSPARENT
+            )
+            self.click_through = False
+            self.click_action.setText("Click-Through: OFF")
+
+    # --------------------------------------------------
+    # Visibility
+    # --------------------------------------------------
+    def toggle_visibility(self):
+        if self.isVisible():
+            self.hide()
+            self.visibility_action.setText("Show Window")
+        else:
+            self.show()
+            self.visibility_action.setText("Hide Window")
 
     # --------------------------------------------------
     # Idle Animation
@@ -87,15 +161,13 @@ class TransparentWindow(QWidget):
     # Keyboard (Background Thread)
     # --------------------------------------------------
     def on_key_background(self, event):
-        # KEIN Qt-Zugriff hier!
         self.keyPressed.emit()
 
     # --------------------------------------------------
-    # Keyboard (Qt Main Thread)
+    # Keyboard (Qt Thread)
     # --------------------------------------------------
     def handle_key_qt(self):
         now = time.time()
-
         if now - self.last_key_time < self.double_threshold:
             self.show_hit(self.hit_both)
             self.last_key_time = 0.0
@@ -108,8 +180,6 @@ class TransparentWindow(QWidget):
     # Hit Animation
     # --------------------------------------------------
     def show_hit(self, pixmap):
-        if pixmap.isNull():
-            return
         self.timer.stop()
         self.label.setPixmap(pixmap)
         QTimer.singleShot(100, self.timer.start)
@@ -124,6 +194,13 @@ class TransparentWindow(QWidget):
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.LeftButton:
             self.move(event.globalPos() - self.drag_pos)
+
+    # --------------------------------------------------
+    # Quit
+    # --------------------------------------------------
+    def quit_app(self):
+        keyboard.unhook_all()
+        QApplication.quit()
 
 
 # ------------------------------------------------------

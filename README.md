@@ -4,6 +4,9 @@ I vibecoded Bongo Cat for Mac because I need the emotional support quick and can
 **UPDATE:**
 I let ChatGPT code a python version (BongoCat.py) of the script and now it runs on more OS's.
 
+**UPDATE 2:**
+Forgot to add the click-through option. Now a tray icon appears (windows only) in which you can toggle it by rightclicking the icon. 
+
 #### Credits
 Images from https://github.com/Externalizable/bongo.cat.git
 
@@ -15,7 +18,7 @@ Images from https://github.com/Externalizable/bongo.cat.git
   5. Smash your keyboard.
 
 #### Requirements (Python Version)
-``pip install PyQt5 keyboard``
+``pip install PyQt5 keyboard pywin32``
 
 #### Known Issues
   - MacOS probably stops the execution due to security concerns. You can run it anyway under "Settings" -> "Privacy & Security". Scroll down until a message about BongoCat appears.
